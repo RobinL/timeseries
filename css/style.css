@@ -533,7 +533,7 @@
   background-clip: padding-box; }
 
 body {
-  background: white url(../img/bg.jpg);
+  /*background: white url(../img/bg.jpg);*/
   letter-spacing: .01em;
   line-height: 1.5; }
 

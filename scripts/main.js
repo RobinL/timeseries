@@ -87,7 +87,15 @@ function LineChart(svgObj){
 		        .attr("d", function(d) {
 		        	return valueline(d)
 		        })
-		        .attr("class", "lines");
+		        .attr("class", "lines")
+		        .style("opacity", function(d,i) {
+		        	if (i==0) {return 1;}
+		        	else {return 20/series.length;}
+		        })
+		        .style("stroke-width", function(d,i) {
+		        	if (i==0) {return 1;}
+		        	else {return 10;}
+		        });
 
 		//Later might need an exit here
 		seriesBound     // Add the valueline path.
@@ -102,10 +110,10 @@ function LineChart(svgObj){
 	}
 
 	var series = [];
-	this.addSeries = function(ar) {
+	this.addSeries = function(ar,rd) {
 
 		series.push(ar);
-		this.reDraw();
+		if (rd) this.reDraw();
 
 	}
 
@@ -126,7 +134,7 @@ var svgMargin = {
 
 var svgHolder = d3.select("#svgholder");
 
-var lineChartContainer = new SvgStore(500,500,svgMargin,svgHolder);
+var lineChartContainer = new SvgStore(1500,1000,svgMargin,svgHolder);
 
 var numPoints=500;
 
@@ -138,12 +146,13 @@ var lineC = new LineChart(lineChartContainer);
 var startData = randomWalk(numPoints);
 lineC.addSeries(startData.series);
 
-var newdata = randomWalk(numPoints,startData);
-lineC.addSeries(newdata.series);
 
-var newdata = randomWalk(numPoints,startData);
-lineC.addSeries(newdata.series);
+for (var i = 0; i < 1500; i++) {
+	var newdata = randomWalk(numPoints,startData);
+	lineC.addSeries(newdata.series,0);
+};
 
+lineC.reDraw();
 
 
 

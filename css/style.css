@@ -573,4 +573,21 @@
   font-size: .9em; }
 
 
-
+path { 
+    stroke: steelblue;
+    stroke-width: 1;
+    fill: none;
+}
+
+.axis path,
+.axis line {
+    fill: none;
+    stroke: grey;
+    stroke-width: 1;
+    shape-rendering: crispEdges;
+}
+
+svg text {
+  font-family: verdana, sans-serif;
+  font-size: 75%;
+}

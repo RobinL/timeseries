@@ -1,3 +1,101 @@
+// Linechart class
+function LineChart(svgObj){
+	//will want an update() method to update 
+	//To scale to svg
+
+	var svgObj = svgObj;
+
+	var x = d3.scale.linear()
+			.domain([0,100])
+			.range([0, svgObj.width]);
+
+	var y = d3.scale.linear()
+			.domain([0,100])
+			.range([svgObj.height, 0]);
+
+
+	var xAxis = d3.svg.axis().scale(x)
+	    .orient("bottom").ticks(5);
+
+	var yAxis = d3.svg.axis().scale(y)
+	    .orient("left").ticks(5);
+
+	var valueline = d3.svg.line()
+		.defined(function(d) { return d != null; })
+	    .x(function(d,i) { return x(i); })
+	    .y(function(d) { return y(d); });
+
+	svgObj.svg.append("g")         // Add the X Axis
+		    .attr("class", "x axis")
+		    .attr("transform", "translate(0," + y(0)+ ")")
+		    .call(xAxis);
+
+	svgObj.svg.append("g")         // Add the Y Axis
+	    .attr("class", "y axis")
+	    .call(yAxis);
+
+	this.reDraw = function() {
+
+		
+		//Get domain
+
+		var xDomain = [0,100];
+		var yDomain = [0,100];
+
+		allSeries = _.reduce(series,function(a,b) {
+			return concat(a,b)
+		});
+
+		getXLength = _.reduce(series, function(a,b) {
+			return Math.max(a,b.length)
+		},series[0].length);
+
+
+		x = d3.scale.linear()
+			.domain([0,getXLength])
+			.range([0, svgObj.width]);
+
+		y = d3.scale.linear()
+				.domain(d3.extent(allSeries))
+				.range([svgObj.height, 0]);
+
+		//plot axes
+
+		var xAxis = d3.svg.axis().scale(x)
+	    .orient("bottom").ticks(5);
+
+	var yAxis = d3.svg.axis().scale(y)
+	    .orient("left").ticks(5);
+
+		svgObj.svg.select(".x axis")         // Add the X Axis
+		    .call(xAxis);
+
+		svgObj.svg.select(".y axis") 
+		    .call(yAxis);
+
+		//Plot each series
+
+		_.each(series, function(x,i) {
+			svgObj.svg.append("path")      // Add the valueline path.
+		        .attr("d", valueline(x));
+		})
+
+	}
+
+	var series = [];
+	this.addSeries = function(ar) {
+
+		series.push(ar);
+		this.reDraw();
+
+	}
+
+
+
+
+}
+
+
 var vis = (function() {
 
 var svgMargin = {
@@ -11,63 +109,25 @@ var svgHolder = d3.select("#svgholder");
 
 var lineChartContainer = new SvgStore(500,500,svgMargin,svgHolder);
 
-var errors = d3.range(1000);
-_.map(errors,function(x,i,ar){
-	ar[i] = d3.random.normal(0,1)();
-});
-
-var data = [];
-
-_.map(errors, function(x,i,ar) {
-	if (i) data.push(x+data[i-1]);
-	else data.push(x);
-})
-
-var lineC = new LineChart(lineChartContainer, data);
+var numPoints=500;
 
 
+var startData = randomWalk(numPoints);
+
+var lineC = new LineChart(lineChartContainer);
+
+lineC.addSeries(startData.series);
+
+var startData2 = randomWalk(numPoints);
+lineC.addSeries(startData2.series);
+
+// var continuationData = randomWalk(startData,numPoints);
+// lineC.addSeries(continuationData.data,startx);
 
 })()
 
 
-function LineChart(svgObj, ar){
-//will want an update() method to update 
-//To scale to svg
-var x = d3.scale.linear()
-		.domain([0,ar.length])
-		.range([0, svgObj.width]);
 
-var y = d3.scale.linear()
-		.domain(d3.extent(ar))
-		.range([svgObj.height, 0]);
-
-
-var xAxis = d3.svg.axis().scale(x)
-    .orient("bottom").ticks(5);
-
-var yAxis = d3.svg.axis().scale(y)
-    .orient("left").ticks(5);
-
-var valueline = d3.svg.line()
-    .x(function(d,i) { return x(i); })
-    .y(function(d) { return y(d); });
-
-svgObj.svg.append("path")      // Add the valueline path.
-        .attr("d", valueline(ar));
-
-svgObj.svg.append("g")         // Add the X Axis
-    .attr("class", "x axis")
-    .attr("transform", "translate(0," + y(0)+ ")")
-    .call(xAxis);
-
-svgObj.svg.append("g")         // Add the Y Axis
-    .attr("class", "y axis")
-    .call(yAxis);
-
-
-
-
-}
 
 // SvgStore initialises a new SVG into a container
 function SvgStore(width,height,margins,holder){
@@ -88,3 +148,35 @@ function SvgStore(width,height,margins,holder){
 		.attr("transform", "translate(" + this.svgMargin.left + "," + this.svgMargin.top + ")");
 }
 
+
+function randomWalk(numPoints,startData){
+
+var newData = [];
+var errors = [];
+
+if (startData) {
+	errors = startData.errors;
+}
+
+
+var newErrors = d3.range(numPoints);
+_.map(newErrors,function(x,i,ar){
+	ar[i] = d3.random.normal(0,1)();
+});
+
+errors= errors.concat(newErrors);
+
+
+var series = [];
+
+
+_.map(errors, function(x,i,ar) {
+	if (i) series.push(x+series[i-1]);
+	else series.push(0);
+});
+
+
+
+return {series:series, errors:errors};
+
+}

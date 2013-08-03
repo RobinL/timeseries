@@ -43,7 +43,7 @@ function LineChart(svgObj){
 		var yDomain = [0,100];
 
 		allSeries = _.reduce(series,function(a,b) {
-			return concat(a,b)
+			return a.concat(b)
 		});
 
 		getXLength = _.reduce(series, function(a,b) {
@@ -64,21 +64,40 @@ function LineChart(svgObj){
 		var xAxis = d3.svg.axis().scale(x)
 	    .orient("bottom").ticks(5);
 
-	var yAxis = d3.svg.axis().scale(y)
-	    .orient("left").ticks(5);
+	
 
-		svgObj.svg.select(".x axis")         // Add the X Axis
+		var yAxis = d3.svg.axis().scale(y)
+		    .orient("left").ticks(5);
+
+		svgObj.svg.select(".x.axis")         // Add the X Axis
 		    .call(xAxis);
 
-		svgObj.svg.select(".y axis") 
+		svgObj.svg.select(".y.axis") 
 		    .call(yAxis);
+
+
+
+		//Update and enter the new series
+
+		var seriesBound = svgObj.svg.selectAll(".lines").data(series);
 
 		//Plot each series
 
-		_.each(series, function(x,i) {
-			svgObj.svg.append("path")      // Add the valueline path.
-		        .attr("d", valueline(x));
-		})
+		seriesBound.enter().append("path")      // Add the valueline path.
+		        .attr("d", function(d) {
+		        	return valueline(d)
+		        })
+		        .attr("class", "lines");
+
+		//Later might need an exit here
+		seriesBound     // Add the valueline path.
+		        .attr("d", function(d) {
+		        	return valueline(d)
+		        })
+		        .attr("class", "lines");
+
+
+		
 
 	}
 
@@ -112,17 +131,22 @@ var lineChartContainer = new SvgStore(500,500,svgMargin,svgHolder);
 var numPoints=500;
 
 
-var startData = randomWalk(numPoints);
+
 
 var lineC = new LineChart(lineChartContainer);
 
+var startData = randomWalk(numPoints);
 lineC.addSeries(startData.series);
 
-var startData2 = randomWalk(numPoints);
-lineC.addSeries(startData2.series);
+var newdata = randomWalk(numPoints,startData);
+lineC.addSeries(newdata.series);
 
-// var continuationData = randomWalk(startData,numPoints);
-// lineC.addSeries(continuationData.data,startx);
+var newdata = randomWalk(numPoints,startData);
+lineC.addSeries(newdata.series);
+
+
+
+
 
 })()
 
@@ -175,6 +199,11 @@ _.map(errors, function(x,i,ar) {
 	else series.push(0);
 });
 
+if (startData){
+	for (var i = 0; i < startData.series.length; i++) {
+		series[i] = undefined;
+	};
+};
 
 
 return {series:series, errors:errors};

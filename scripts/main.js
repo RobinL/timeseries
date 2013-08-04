@@ -1,8 +1,6 @@
 // Linechart class
 function LineChart(svgObj){
-	//will want an update() method to update 
-	//To scale to svg
-
+	
 	var svgObj = svgObj;
 
 	var x = d3.scale.linear()
@@ -36,7 +34,6 @@ function LineChart(svgObj){
 
 	this.reDraw = function() {
 
-		
 		//Get domain
 
 		var xDomain = [0,100];
@@ -64,8 +61,6 @@ function LineChart(svgObj){
 		var xAxis = d3.svg.axis().scale(x)
 	    .orient("bottom").ticks(5);
 
-	
-
 		var yAxis = d3.svg.axis().scale(y)
 		    .orient("left").ticks(5);
 
@@ -75,46 +70,69 @@ function LineChart(svgObj){
 		svgObj.svg.select(".y.axis") 
 		    .call(yAxis);
 
-
-
 		//Update and enter the new series
 
 		var seriesBound = svgObj.svg.selectAll(".lines").data(series);
 
+
+		//Colour scale
+		minEnd = _.reduce(series,function(a,b,i) {
+			if (i==0) return a;
+			else return Math.min(a,b[b.length-1]);
+		}, series[1][series[1].length-1]);
+
+		maxEnd = _.reduce(series,function(a,b,i) {
+			if (i==0) return a;
+			else return Math.max(a,b[b.length-1]);
+		}, series[1][series[1].length-1]);
+
+
+		var lineColor=d3.scale.linear().domain([minEnd,(minEnd+maxEnd)/2,maxEnd]).range(["red","steelblue", "red"]);
+
+
 		//Plot each series
 
 		seriesBound.enter().append("path")      // Add the valueline path.
-		        .attr("d", function(d) {
-		        	return valueline(d)
-		        })
-		        .attr("class", "lines")
-		        .style("opacity", function(d,i) {
-		        	if (i==0) {return 1;}
-		        	else {return 20/series.length;}
-		        })
-		        .style("stroke-width", function(d,i) {
-		        	if (i==0) {return 1;}
-		        	else {return 10;}
-		        });
-
-		//Later might need an exit here
-		seriesBound     // Add the valueline path.
-		        .attr("d", function(d) {
-		        	return valueline(d)
-		        })
-		        .attr("class", "lines");
-
+			.attr("d", function(d) {
+				return valueline(d)
+			})
+			.attr("class", "lines")
+			.style("opacity", function(d,i) {
+				if (i==0) {return 1;}
+				else {return 0.1;}
+			})
+			.style("stroke-width", function(d,i) {
+				if (i==0) {return 2;}
+				else {return 2;}
+			})
+			.style("stroke", function(d,i) {
+				if (i ==0) return undefined;
+				else return lineColor(d[d.length-1]);
+			})
+			// .on("mouseover", function(d) {
+			// 	debugger;
+			// 	 d3.select(this).style("opacity",1);
+			// })
+			// .on("mouseout", function(d) {
+			// 	debugger;
+			// 	 d3.select(this).style("opacity",0.1);
+			// })
 
 		
+		seriesBound     
+			.attr("d", function(d) {
+				return valueline(d)
+			})
+			.attr("class", "lines");
+
+		//Later might need an exit here
 
 	}
 
 	var series = [];
 	this.addSeries = function(ar,rd) {
-
 		series.push(ar);
 		if (rd) this.reDraw();
-
 	}
 
 
@@ -125,37 +143,41 @@ function LineChart(svgObj){
 
 var vis = (function() {
 
-var svgMargin = {
-		top: 40,
-		right: 40,
-		bottom: 40,
-		left: 40
+	var svgMargin = {
+			top: 40,
+			right: 40,
+			bottom: 40,
+			left: 40
+		};
+
+	var svgHolder = d3.select("#svgholder");
+
+	var lineChartContainer = new SvgStore(1500,1000,svgMargin,svgHolder);
+
+	var numPoints=200;
+
+	var lineC = new LineChart(lineChartContainer);
+
+	
+
+	var spec = {
+		v: 1,
+		c: 0,
+		t: 0,
+		ar: 1,
+		ma: 0
 	};
 
-var svgHolder = d3.select("#svgholder");
+	var startData = generateSeries(spec,numPoints);
+	lineC.addSeries(startData.series);
 
-var lineChartContainer = new SvgStore(1500,1000,svgMargin,svgHolder);
+	// Add a bunch of lines all starting at the beginning of the forecast horizon
+	for (var i = 0; i < 500; i++) {
+		var newdata = generateSeries(spec, numPoints,startData);
+		lineC.addSeries(newdata.series,0);
+	};
 
-var numPoints=500;
-
-
-
-
-var lineC = new LineChart(lineChartContainer);
-
-var startData = randomWalk(numPoints);
-lineC.addSeries(startData.series);
-
-
-for (var i = 0; i < 1500; i++) {
-	var newdata = randomWalk(numPoints,startData);
-	lineC.addSeries(newdata.series,0);
-};
-
-lineC.reDraw();
-
-
-
+	lineC.reDraw();
 
 })()
 
@@ -182,39 +204,53 @@ function SvgStore(width,height,margins,holder){
 }
 
 
-function randomWalk(numPoints,startData){
 
-var newData = [];
-var errors = [];
+function generateSeries(spec,numPoints, startData) {
 
-if (startData) {
-	errors = startData.errors;
-}
+	var newData = [];
+	var errors = [];
 
+	if (startData) {
+		errors = startData.errors;
+	}
 
-var newErrors = d3.range(numPoints);
-_.map(newErrors,function(x,i,ar){
-	ar[i] = d3.random.normal(0,1)();
-});
+	var newErrors = d3.range(numPoints);
+	_.map(newErrors,function(x,i,ar){
+		ar[i] = d3.random.normal(0,spec.v)();
+	});
 
-errors= errors.concat(newErrors);
-
-
-var series = [];
+	errors= errors.concat(newErrors);
 
 
-_.map(errors, function(x,i,ar) {
-	if (i) series.push(x+series[i-1]);
-	else series.push(0);
-});
+	var series = ARIMA(spec,errors);
 
-if (startData){
-	for (var i = 0; i < startData.series.length; i++) {
-		series[i] = undefined;
+	if (startData){
+		for (var i = 0; i < startData.series.length; i++) {
+			series[i] = undefined;
+		};
 	};
-};
 
-
-return {series:series, errors:errors};
+	return {series:series, errors:errors};
 
 }
+
+function ARIMA(spec, errors) {
+
+	function lag(array,i,order) {
+		if (array[i-order]) return array[i-order]
+			else return 0;
+	}
+
+	var returnSeries = [];
+
+	_.map(errors, function(x,i,ar) {
+		
+		returnSeries[i] = spec.c + spec.t*i+ spec.ar*lag(returnSeries,i,1)+ spec.ma*lag(errors,i,1) + errors[i];
+
+	});	
+
+	return returnSeries;
+
+
+}
+

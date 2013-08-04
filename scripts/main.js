@@ -70,12 +70,7 @@ function LineChart(svgObj){
 		svgObj.svg.select(".y.axis") 
 		    .call(yAxis);
 
-		//Update and enter the new series
-
-		var seriesBound = svgObj.svg.selectAll(".lines").data(series);
-
-
-		//Colour scale
+		//Colour scale for series
 		minEnd = _.reduce(series,function(a,b,i) {
 			if (i==0) return a;
 			else return Math.min(a,b[b.length-1]);
@@ -86,9 +81,11 @@ function LineChart(svgObj){
 			else return Math.max(a,b[b.length-1]);
 		}, series[1][series[1].length-1]);
 
-
 		var lineColor=d3.scale.linear().domain([minEnd,(minEnd+maxEnd)/2,maxEnd]).range(["red","steelblue", "red"]);
+		
+		//Update and enter the new series
 
+		var seriesBound = svgObj.svg.selectAll(".lines").data(series);
 
 		//Plot each series
 
@@ -119,14 +116,30 @@ function LineChart(svgObj){
 			.attr("class", "lines");
 
 		//Later might need an exit here
+		seriesBound     
+			.exit()
+			.remove();
+			
 
 	}
 
 	var series = [];
+
 	this.addSeries = function(ar,rd) {
 		series.push(ar);
 		if (rd) this.reDraw();
 	}
+
+	this.removeAllSims = function() {
+		while (series.length>1) {
+			series.pop()
+		}	
+	}
+
+	this.removeAllData = function() {
+		series = [];
+	}
+
 
 }
 
@@ -144,30 +157,32 @@ var vis = (function() {
 
 	var lineChartContainer = new SvgStore(800,500,svgMargin,svgHolder);
 
-	var numPoints=200;
-
 	var lineC = new LineChart(lineChartContainer);
 
-	
+	var model = new TimeSeriesModel(lineC);
 
-	var spec = {
-		v: 1,
-		c: 0,
-		t: 0,
-		ar: 1,
-		ma: 0
-	};
-
-	var startData = generateSeries(spec,numPoints);
-	lineC.addSeries(startData.series);
-
-	// Add a bunch of lines all starting at the beginning of the forecast horizon
-	for (var i = 0; i < 50; i++) {
-		var newdata = generateSeries(spec, numPoints,startData);
-		lineC.addSeries(newdata.series,0);
-	};
+	//send sims to chart
+	model.getModelParams();
+	model.generateStart();
+	model.generateSims();
 
 	lineC.reDraw();
+
+	$("#redraw").on("click", function() {
+		model.getModelParams();
+		lineC.removeAllSims();
+		model.generateSims();
+		lineC.reDraw();
+	})
+
+	$("#newErrors").on("click", function() {
+		model.getModelParams();
+		lineC.removeAllData();
+		model.generateStart();
+		model.generateSims();
+		lineC.reDraw();
+	})
+
 
 })()
 
@@ -192,48 +207,97 @@ function SvgStore(width,height,margins,holder){
 
 
 
-function generateSeries(spec,numPoints, startData) {
+function TimeSeriesModel(chart) {
 
-	var newData = [];
-	var errors = [];
-
-	if (startData) {
-		errors = startData.errors;
-	}
-
-	var newErrors = d3.range(numPoints);
-	_.map(newErrors,function(x,i,ar){
-		ar[i] = d3.random.normal(0,spec.v)();
-	});
-
-	errors= errors.concat(newErrors);
-
-	var series = ARIMA(spec,errors);
-
-	if (startData){
-		for (var i = 0; i < startData.series.length; i++) {
-			series[i] = undefined;
-		};
+	var spec = {
+		errorvar: 1,
+		alpha: 0,
+		theta: 0,
+		beta: 1,
+		gamma: 0
 	};
 
-	return {series:series, errors:errors};
+	var numPoints
+	var numSims
 
-}
 
-function ARIMA(spec, errors) {
+	this.getModelParams = function() {
 
-	function lag(array,i,order) {
-		if (array[i-order]) return array[i-order]
-			else return 0;
+		spec.alpha = parseFloat($("#inputAlpha").val());
+		spec.theta = parseFloat($("#inputTheta").val());
+		spec.errorvar = parseFloat($("#inputErrorVar").val());
+		spec.beta = parseFloat($("#inputBetas").val());
+		spec.gamma = parseFloat($("#inputGammas").val());
+
+		 numPoints = $("#inputNumPoints").val();
+		numSims = $("#inputNumSims").val();
 	}
 
-	var returnSeries = [];
-	_.map(errors, function(x,i,ar) {
-		returnSeries[i] = spec.c + spec.t*i+ spec.ar*lag(returnSeries,i,1)+ spec.ma*lag(errors,i,1) + errors[i];
 
-	});	
+	var startData;
 
-	return returnSeries;
+	function generateSeries() {
+
+		var newData = [];
+		var errors = [];
+
+		if (startData) {
+			errors = startData.errors;
+		}
+
+		var newErrors = d3.range(numPoints);
+		_.map(newErrors,function(x,i,ar){
+			ar[i] = d3.random.normal(0,spec.errorvar)();
+		});
+
+		errors= errors.concat(newErrors);
+
+		var series = ARIMA(spec,errors);
+
+		if (startData){
+			for (var i = 0; i < startData.series.length; i++) {
+				series[i] = undefined;
+			};
+		};
+
+		return {series:series, errors:errors};
+
+	}
+
+	function ARIMA(spec, errors) {
+
+		function lag(array,i,order) {
+			if (array[i-order]) return array[i-order]
+				else return 0;
+		}
+
+		var returnSeries = [];
+		_.map(errors, function(x,i,ar) {
+			returnSeries[i] = spec.alpha + spec.theta*i+ spec.beta*lag(returnSeries,i,1)+ spec.gamma*lag(errors,i,1) + errors[i];
+
+		});	
+
+		return returnSeries;
+
+	}
+
+	this.generateSims = function() {
+		for (var i = 0; i < numSims; i++) {
+			var newdata = generateSeries();
+			chart.addSeries(newdata.series,0);
+		};
+	}
+
+	this.generateStart = function() {
+		startData = undefined;
+		startData = generateSeries(numPoints);
+		chart.addSeries(startData.series);
+	}
+
+
 
 }
+
+
+
 

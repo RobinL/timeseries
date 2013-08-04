@@ -17,7 +17,7 @@
 <h2><img src="img/capture.png" alt=""></h2>
 
 
-<form class="form-horizontal">
+
 <div class="row">
 
   <div class="form-group col-lg-3">
@@ -31,6 +31,13 @@
     <label for="inputTheta" class="col-lg-4 control-label">Theta</label>
     <div class="col-lg-8">
       <input type="Theta" class="form-control" id="inputTheta" placeholder="Theta" value = "0">
+    </div>
+  </div>
+
+  <div class="form-group col-lg-3">
+    <label for="inputErrorVar" class="col-lg-4 control-label">ErrorVar</label>
+    <div class="col-lg-8">
+      <input type="ErrorVar" class="form-control" id="inputErrorVar" placeholder="ErrorVar" value = "1">
     </div>
   </div>
 
@@ -48,7 +55,7 @@
    <div class="form-group col-lg-3">
     <label for="inputGammas" class="col-lg-4 control-label">Gammas</label>
     <div class="col-lg-8">
-      <input type="Gammas" class="form-control" id="inputGammas" placeholder="Gammas" value = "0.2, 0.2">
+      <input type="Gammas" class="form-control" id="inputGammas" placeholder="Gammas" value = "0.2">
     </div>
   </div>
 
@@ -59,7 +66,14 @@
    <div class="form-group col-lg-3">
     <label for="inputnumPoints" class="col-lg-4 control-label">numPoints</label>
     <div class="col-lg-8">
-      <input type="numPoints" class="form-control" id="inputnumPoints" placeholder="numPoints" value ="1">
+      <input type="numPoints" class="form-control" id="inputNumPoints" placeholder="numPoints" value ="500">
+    </div>
+  </div>
+
+   <div class="form-group col-lg-3">
+    <label for="inputnumSims" class="col-lg-4 control-label">numSims</label>
+    <div class="col-lg-8">
+      <input type="numSims" class="form-control" id="inputNumSims" placeholder="numSims" value ="100">
     </div>
   </div>
 
@@ -71,27 +85,25 @@
 	<div class="col-lg-3 form-group">
 	<div class="col-lg-4"></div>
 	<div class="col-lg-8">
-	<button class="btn btn-default" id="redraw">Redraw</button>
+	<button class="btn " id="redraw">Redraw with same errors</button>
 	</div>
 	</div>
 
 	<div class="col-lg-3 form-group">
 	<div class="col-lg-4"></div>
 	<div class="col-lg-8">
-	<button class="btn btn-default" id="newErrors">Generate new errors</button>
+	<button class="btn " id="newErrors">Generate new errors</button>
 	</div>
 	</div>
 
    
-
-
   </div>
 
 
 
 
 
- </form>
+
 
 <p id="svgholder"></p>
 

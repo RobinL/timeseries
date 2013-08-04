@@ -59,6 +59,13 @@
     </div>
   </div>
 
+  <div class="form-group col-lg-3">
+    <label for="inputBigError" class="col-lg-4 control-label">BigError</label>
+    <div class="col-lg-8">
+      <input type="BigError" class="form-control" id="inputBigError" placeholder="BigError" value = "50">
+    </div>
+  </div>
+
  </div>
 
  <div class="row">
@@ -74,6 +81,13 @@
     <label for="inputnumSims" class="col-lg-4 control-label">numSims</label>
     <div class="col-lg-8">
       <input type="numSims" class="form-control" id="inputNumSims" placeholder="numSims" value ="100">
+    </div>
+  </div>
+
+  <div class="form-group col-lg-3">
+    <label for="inputOpacity" class="col-lg-4 control-label">Opacity</label>
+    <div class="col-lg-8">
+      <input type="Opacity" class="form-control" id="inputOpacity" placeholder="Opacity" value ="0.1">
     </div>
   </div>
 
@@ -97,6 +111,8 @@
 	</div>
 
    
+
+
   </div>
 
 
@@ -106,8 +122,28 @@
 
 
 <p id="svgholder"></p>
+<div class="row">
+<div class="col-lg-4">
+<h2>Help</h2>
+
+<p> <strong> 'Bigerror':</strong> specify a large error which will be inserted into the series.  The visualisation will then show how this error propagates through the series.  Set input box to empty if you don't want a big error</p>
+</p>
+<p> <strong> 'Betas/Gammas':</strong> A single value is the parameter on the first time lag.  Write a comma separated list of values for longer lags.  E.g. if betas = 0.8,0.5 this is saying that b1 = 0.8 and b2 = 0.5</p>
+</p>
+<p> <strong> Forecast:</strong> The line in green is the best forecast possible given the data generating mechanism</p>
+</p>
+
+</div>
+
+<div class="col-lg-4">
+
+<h2>Tips</h2>
+<p>Don't put numSims to more than about 500 if you don't want the page to hang</p>
+<p>Higher values of numSims require lower values for opacity</p>
+</div>
 
 
+</div>
 </div>
 
 <script src="scripts/underscore.js"></script>

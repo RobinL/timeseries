@@ -81,7 +81,10 @@ function LineChart(svgObj){
 			else return Math.max(a,b[b.length-1]);
 		}, series[1][series[1].length-1]);
 
-		var lineColor=d3.scale.linear().domain([minEnd,(minEnd+maxEnd)/2,maxEnd]).range(["red","steelblue", "red"]);
+		//allSeries[allSeries.length-1] is the mid point of the uncertainty because its the forecast
+		var lineColor=d3.scale.linear()
+			.domain([minEnd,allSeries[allSeries.length-1],maxEnd])
+			.range(["red","steelblue", "red"]);
 		
 		//Update and enter the new series
 
@@ -94,21 +97,13 @@ function LineChart(svgObj){
 				return valueline(d)
 			})
 			.attr("class", "lines")
-			.style("opacity", function(d,i) {
-				if (i==0) {return 1;}
-				else {return 0.1;}
-			})
 			.style("stroke-width", function(d,i) {
 				if (i==0) {return 2;}
+				else if (i== series.length-1) {return 1}
 				else {return 2;}
 			})
-			.style("stroke", function(d,i) {
-				if (i ==0) return undefined;
-				else return lineColor(d[d.length-1]);
-			})
 			
-
-		
+			
 		seriesBound     
 			.attr("d", function(d) {
 				return valueline(d)
@@ -116,7 +111,13 @@ function LineChart(svgObj){
 			.attr("class", "lines")
 			.style("stroke", function(d,i) {
 				if (i ==0) return undefined;
+				else if (i== series.length-1) {return "#1AF224"}
 				else return lineColor(d[d.length-1]);
+			})
+			.style("opacity", function(d,i) {
+				if (i==0) {return 1;}
+				else if (i== series.length-1) {return 1}
+				else {return parseFloat($("#inputOpacity").val())}
 			})
 
 		//Later might need an exit here
@@ -124,7 +125,6 @@ function LineChart(svgObj){
 			.exit()
 			.remove();
 			
-
 	}
 
 	var series = [];
@@ -144,7 +144,6 @@ function LineChart(svgObj){
 		series = [];
 	}
 
-
 }
 
 
@@ -159,7 +158,7 @@ var vis = (function() {
 
 	var svgHolder = d3.select("#svgholder");
 
-	var lineChartContainer = new SvgStore(800,500,svgMargin,svgHolder);
+	var lineChartContainer = new SvgStore(900,500,svgMargin,svgHolder);
 
 	var lineC = new LineChart(lineChartContainer);
 
@@ -210,8 +209,6 @@ function SvgStore(width,height,margins,holder){
 		.attr("transform", "translate(" + this.svgMargin.left + "," + this.svgMargin.top + ")");
 }
 
-
-
 function TimeSeriesModel(chart) {
 
 	var spec = {
@@ -228,20 +225,38 @@ function TimeSeriesModel(chart) {
 
 	this.getModelParams = function() {
 
+		function textToArray(text) {
+			var returnArray = [];
+
+			returnArray = text.split(",")
+			_.map(returnArray, function(x,i, ar) {
+				ar[i] = parseFloat(x)
+			});
+
+			return returnArray;
+
+		}
+
 		spec.alpha = parseFloat($("#inputAlpha").val());
 		spec.theta = parseFloat($("#inputTheta").val());
 		spec.errorvar = parseFloat($("#inputErrorVar").val());
 		spec.beta = parseFloat($("#inputBetas").val());
 		spec.gamma = parseFloat($("#inputGammas").val());
 
-		 numPoints = $("#inputNumPoints").val();
+
+	
+		spec.betas = textToArray($("#inputBetas").val());
+		spec.gammas = textToArray($("#inputGammas").val());
+
+		numPoints = $("#inputNumPoints").val();
 		numSims = $("#inputNumSims").val();
 	}
 
 
 	var startData;
 
-	function generateContinuation() {
+	//forecast is boolean - if true then continuation is generated with no errors
+	function generateContinuation(forecast) {
 
 		var newData = [];
 		var errors = [];
@@ -249,8 +264,10 @@ function TimeSeriesModel(chart) {
 		errors = startData.errors;
 		
 		var newErrors = d3.range(numPoints);
+
 		_.map(newErrors,function(x,i,ar){
-			ar[i] = d3.random.normal(0,spec.errorvar)();
+			if (forecast) {ar[i] = 0}
+			else {ar[i] = d3.random.normal(0,spec.errorvar)();};
 		});
 
 		errors= errors.concat(newErrors);
@@ -266,7 +283,6 @@ function TimeSeriesModel(chart) {
 
 	}
 
-
 	 function generateStart() {
 
 		var newData = [];
@@ -277,7 +293,12 @@ function TimeSeriesModel(chart) {
 
 			var errors = d3.range(numPoints);
 			_.map(errors,function(x,i,ar){
+
 				ar[i] = d3.random.normal(0,spec.errorvar)();
+
+				if ($("#inputBigError").val() && i == Math.floor(7*numPoints/8)) {
+					ar[i] = parseFloat($("#inputBigError").val());
+				}
 			});
 
 		}
@@ -288,8 +309,6 @@ function TimeSeriesModel(chart) {
 
 	}
 
-	
-
 	function ARIMA(spec, errors) {
 
 		function lag(array,i,order) {
@@ -299,11 +318,23 @@ function TimeSeriesModel(chart) {
 
 		var returnSeries = [];
 		_.map(errors, function(x,i,ar) {
-			returnSeries[i] = spec.alpha + spec.theta*i+ spec.beta*lag(returnSeries,i,1)+ spec.gamma*lag(errors,i,1) + errors[i];
+			
+			returnSeries[i] = spec.alpha + spec.theta*i;
+
+			_.each(spec.betas, function(x,j) {
+				returnSeries[i] +=x*lag(returnSeries,i,j+1);
+			})
+
+			_.each(spec.gammas, function(x,j) {
+				returnSeries[i] +=x*lag(errors,i,j+1) ;
+			})
+
+			
+			returnSeries[i] = returnSeries[i] + errors[i];
 
 		});	
 
-		return returnSeries;
+		return returnSeries;ar
 
 	}
 
@@ -312,6 +343,10 @@ function TimeSeriesModel(chart) {
 			var newdata = generateContinuation();
 			chart.addSeries(newdata.series,0);
 		};
+
+		var newdata = generateContinuation(1);
+			chart.addSeries(newdata.series,0);
+
 	}
 
 	this.generateNewStart = function() {
@@ -325,10 +360,4 @@ function TimeSeriesModel(chart) {
 		chart.addSeries(startData.series);
 	}
 
-
-
 }
-
-
-
-

@@ -163,14 +163,15 @@ var vis = (function() {
 
 	//send sims to chart
 	model.getModelParams();
-	model.generateStart();
+	model.generateNewStart();
 	model.generateSims();
 
 	lineC.reDraw();
 
 	$("#redraw").on("click", function() {
 		model.getModelParams();
-		lineC.removeAllSims();
+		lineC.removeAllData();
+		model.regenerateStart();
 		model.generateSims();
 		lineC.reDraw();
 	})
@@ -178,7 +179,7 @@ var vis = (function() {
 	$("#newErrors").on("click", function() {
 		model.getModelParams();
 		lineC.removeAllData();
-		model.generateStart();
+		model.generateNewStart();
 		model.generateSims();
 		lineC.reDraw();
 	})
@@ -236,15 +237,13 @@ function TimeSeriesModel(chart) {
 
 	var startData;
 
-	function generateSeries() {
+	function generateContinuation() {
 
 		var newData = [];
 		var errors = [];
 
-		if (startData) {
-			errors = startData.errors;
-		}
-
+		errors = startData.errors;
+		
 		var newErrors = d3.range(numPoints);
 		_.map(newErrors,function(x,i,ar){
 			ar[i] = d3.random.normal(0,spec.errorvar)();
@@ -254,15 +253,38 @@ function TimeSeriesModel(chart) {
 
 		var series = ARIMA(spec,errors);
 
-		if (startData){
-			for (var i = 0; i < startData.series.length; i++) {
-				series[i] = undefined;
-			};
+		
+		for (var i = 0; i < startData.series.length; i++) {
+			series[i] = undefined;
 		};
+		
+		return {series:series, errors:errors};
+
+	}
+
+
+	 function generateStart() {
+
+		var newData = [];
+
+		if (startData) {
+			errors = startData.errors;
+		} else {
+
+			var errors = d3.range(numPoints);
+			_.map(errors,function(x,i,ar){
+				ar[i] = d3.random.normal(0,spec.errorvar)();
+			});
+
+		}
+
+		var series = ARIMA(spec,errors);
 
 		return {series:series, errors:errors};
 
 	}
+
+	
 
 	function ARIMA(spec, errors) {
 
@@ -283,14 +305,19 @@ function TimeSeriesModel(chart) {
 
 	this.generateSims = function() {
 		for (var i = 0; i < numSims; i++) {
-			var newdata = generateSeries();
+			var newdata = generateContinuation();
 			chart.addSeries(newdata.series,0);
 		};
 	}
 
-	this.generateStart = function() {
+	this.generateNewStart = function() {
 		startData = undefined;
-		startData = generateSeries(numPoints);
+		startData = generateStart(numPoints);
+		chart.addSeries(startData.series);
+	}
+
+	this.regenerateStart = function() {
+		startData = generateStart(numPoints);
 		chart.addSeries(startData.series);
 	}
 

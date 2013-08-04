@@ -5,15 +5,102 @@
   <title>Title</title>
   <meta name="description" content="content">
   <meta name="author" content="author">
-  <link rel="stylesheet" href="css/style.css">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+   <link href="css/bootstrap.css" rel="stylesheet" media="screen">
+   <link href="css/style.css" rel="stylesheet" media="screen">
 </head>
 
 <body>
 
+<div class="container">
+<h1>Time series simulator</h1>
+<h2><img src="img/capture.png" alt=""></h2>
+
+
+<form class="form-horizontal">
+<div class="row">
+
+  <div class="form-group col-lg-3">
+    <label for="inputAlpha" class="col-lg-4 control-label">Alpha</label>
+    <div class="col-lg-8">
+      <input type="text" class="form-control" id="inputAlpha" placeholder="Alpha" value = "0">
+    </div>
+  </div>
+
+  <div class="form-group col-lg-3">
+    <label for="inputTheta" class="col-lg-4 control-label">Theta</label>
+    <div class="col-lg-8">
+      <input type="Theta" class="form-control" id="inputTheta" placeholder="Theta" value = "0">
+    </div>
+  </div>
+
+  
+</div>
+<div class="row">
+
+   <div class="form-group col-lg-3">
+    <label for="inputBetas" class="col-lg-4 control-label">Betas</label>
+    <div class="col-lg-8">
+      <input type="Betas" class="form-control" id="inputBetas" placeholder="Betas" value ="1">
+    </div>
+  </div>
+
+   <div class="form-group col-lg-3">
+    <label for="inputGammas" class="col-lg-4 control-label">Gammas</label>
+    <div class="col-lg-8">
+      <input type="Gammas" class="form-control" id="inputGammas" placeholder="Gammas" value = "0.2, 0.2">
+    </div>
+  </div>
+
+ </div>
+
+ <div class="row">
+
+   <div class="form-group col-lg-3">
+    <label for="inputnumPoints" class="col-lg-4 control-label">numPoints</label>
+    <div class="col-lg-8">
+      <input type="numPoints" class="form-control" id="inputnumPoints" placeholder="numPoints" value ="1">
+    </div>
+  </div>
+
+
+  </div>
+
+ <div class="row">
+
+	<div class="col-lg-3 form-group">
+	<div class="col-lg-4"></div>
+	<div class="col-lg-8">
+	<button class="btn btn-default" id="redraw">Redraw</button>
+	</div>
+	</div>
+
+	<div class="col-lg-3 form-group">
+	<div class="col-lg-4"></div>
+	<div class="col-lg-8">
+	<button class="btn btn-default" id="newErrors">Generate new errors</button>
+	</div>
+	</div>
+
+   
+
+
+  </div>
+
+
+
+
+
+ </form>
+
 <p id="svgholder"></p>
+
+
+</div>
 
 <script src="scripts/underscore.js"></script>
 <script src="scripts/jquery.js"></script>
+<script src="scripts/bootstrap.js"></script>
 <script src="scripts/d3.js"></script>
 <script src="scripts/main.js"></script>
 </body>

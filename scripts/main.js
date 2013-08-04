@@ -109,14 +109,7 @@ function LineChart(svgObj){
 				if (i ==0) return undefined;
 				else return lineColor(d[d.length-1]);
 			})
-			// .on("mouseover", function(d) {
-			// 	debugger;
-			// 	 d3.select(this).style("opacity",1);
-			// })
-			// .on("mouseout", function(d) {
-			// 	debugger;
-			// 	 d3.select(this).style("opacity",0.1);
-			// })
+			
 
 		
 		seriesBound     
@@ -135,9 +128,6 @@ function LineChart(svgObj){
 		if (rd) this.reDraw();
 	}
 
-
-
-
 }
 
 
@@ -152,7 +142,7 @@ var vis = (function() {
 
 	var svgHolder = d3.select("#svgholder");
 
-	var lineChartContainer = new SvgStore(1500,1000,svgMargin,svgHolder);
+	var lineChartContainer = new SvgStore(800,500,svgMargin,svgHolder);
 
 	var numPoints=200;
 
@@ -172,7 +162,7 @@ var vis = (function() {
 	lineC.addSeries(startData.series);
 
 	// Add a bunch of lines all starting at the beginning of the forecast horizon
-	for (var i = 0; i < 500; i++) {
+	for (var i = 0; i < 50; i++) {
 		var newdata = generateSeries(spec, numPoints,startData);
 		lineC.addSeries(newdata.series,0);
 	};
@@ -182,11 +172,8 @@ var vis = (function() {
 })()
 
 
-
-
 // SvgStore initialises a new SVG into a container
 function SvgStore(width,height,margins,holder){
-
 	this.height = height;
 	this.width = width;
 
@@ -221,7 +208,6 @@ function generateSeries(spec,numPoints, startData) {
 
 	errors= errors.concat(newErrors);
 
-
 	var series = ARIMA(spec,errors);
 
 	if (startData){
@@ -242,15 +228,12 @@ function ARIMA(spec, errors) {
 	}
 
 	var returnSeries = [];
-
 	_.map(errors, function(x,i,ar) {
-		
 		returnSeries[i] = spec.c + spec.t*i+ spec.ar*lag(returnSeries,i,1)+ spec.ma*lag(errors,i,1) + errors[i];
 
 	});	
 
 	return returnSeries;
-
 
 }
 

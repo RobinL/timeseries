@@ -113,7 +113,11 @@ function LineChart(svgObj){
 			.attr("d", function(d) {
 				return valueline(d)
 			})
-			.attr("class", "lines");
+			.attr("class", "lines")
+			.style("stroke", function(d,i) {
+				if (i ==0) return undefined;
+				else return lineColor(d[d.length-1]);
+			})
 
 		//Later might need an exit here
 		seriesBound     

@@ -39,9 +39,10 @@ function LineChart(svgObj){
 		var xDomain = [0,100];
 		var yDomain = [0,100];
 
-		allSeries = _.reduce(series,function(a,b) {
-			return a.concat(b)
-		});
+
+		// Append all series
+		allSeries = [].concat.apply([],series)
+
 
 		getXLength = _.reduce(series, function(a,b) {
 			return Math.max(a,b.length)
@@ -144,6 +145,10 @@ function LineChart(svgObj){
 		series = [];
 	}
 
+	this.getSeries = function(){
+		return series;
+	}
+
 }
 
 
@@ -185,8 +190,11 @@ var vis = (function() {
 		model.generateNewStart();
 		model.generateSims();
 		lineC.reDraw();
+		
 	})
 
+	
+	
 
 })()
 
@@ -254,7 +262,7 @@ function TimeSeriesModel(chart) {
 
 
 	var startData;
-
+	var fanSeries;
 	//forecast is boolean - if true then continuation is generated with no errors
 	function generateContinuation(forecast) {
 
@@ -283,7 +291,7 @@ function TimeSeriesModel(chart) {
 
 	}
 
-	 function generateStart() {
+	function generateStart() {
 
 		var newData = [];
 
@@ -359,5 +367,58 @@ function TimeSeriesModel(chart) {
 		startData = generateStart(numPoints);
 		chart.addSeries(startData.series);
 	}
+
+	this.generateFan = function() {
+
+		var series = chart.getSeries();
+		//Get rid of start and forecast
+		series.pop();
+		series.shift();
+
+		
+		var transposed = d3.transpose(series)
+		scales = [];
+
+		_.each(transposed, function(x,i,ar) {
+			ar[i].sort(function(a, b) {
+    		return a - b;
+			});
+
+		})
+
+		_.each(transposed, function(x,i,ar) {
+			scales.push(d3.scale.quantile().domain([0,100]).range(x));
+		});
+
+		//Write fan
+
+		fanSeries = [];
+
+
+		_.each(scales, function(x,i,ar) {
+
+			for (var j = 1; j < 100; j++) {
+				if (fanSeries[j]) 	{
+					fanSeries[j].push(x(j));
+				}
+				else {
+					fanSeries[j] = [];
+					fanSeries[j].push(x(j));
+				}
+			};
+		})
+
+		// chart.removeAllData();
+
+		// _.each(fanSeries, function(x,i) {
+		// 	chart.addSeries(x);
+		// })
+
+		
+		// chart.reDraw();
+	
+
+	}
+
 
 }

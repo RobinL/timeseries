@@ -37,7 +37,6 @@ function LineChart(svgObj){
 	//ReDraw the axes
 	this.reDraw = function() {
 		
-
 		//Get domain
 
 		var xDomain = [0,100];
@@ -45,8 +44,8 @@ function LineChart(svgObj){
 
 
 		// Append all series
-		allSeries = [].concat.apply([],series.sims)
-
+		allSeries = [].concat.apply([],series.sims);
+		allSeries = allSeries.concat(series.startforecast[0]);
 
 		getXLength = _.reduce(series.sims, function(a,b) {
 			return Math.max(a,b.length)
@@ -79,25 +78,28 @@ function LineChart(svgObj){
 		minEnd = _.reduce(series.sims,function(a,b,i) {
 			if (i==0) return a;
 			else return Math.min(a,b[b.length-1]);
-		}, series.sims[1][series.sims[1].length-1]);
+		}, _.last(series.sims[0]));
+	
 
 		maxEnd = _.reduce(series.sims,function(a,b,i) {
 			if (i==0) return a;
 			else return Math.max(a,b[b.length-1]);
-		}, series.sims[1][series.sims[1].length-1]);
+		}, _.last(series.sims[0]));
 
 		//allSeries[allSeries.length-1] is the mid point of the uncertainty because its the forecast
 		lineColor=d3.scale.linear()
-			.domain([minEnd,allSeries[allSeries.length-1],maxEnd])
+			.domain([minEnd,_.last(series.startforecast[1]),maxEnd])
 			.range(["red","steelblue", "red"]);
 
 		debugger;
 
-		if ($("#toggle").is(':checked')) {
+		if (!$("#toggle").is(':checked')) {
 			reDrawSims();
 		} else {
 			reDrawFan();
 		}
+
+		reDrawStartAndForecast();
 
 	}
 
@@ -117,9 +119,7 @@ function LineChart(svgObj){
 			})
 			.attr("class", "lines")
 			.style("stroke-width", function(d,i) {
-				if (i==0) {return 2;}
-				else if (i== series.sims.length-1) {return 1}
-				else {return 2;}
+				return 2
 			})
 			
 			
@@ -129,14 +129,10 @@ function LineChart(svgObj){
 			})
 			.attr("class", "lines")
 			.style("stroke", function(d,i) {
-				if (i ==0) return undefined;
-				else if (i== series.sims.length-1) {return "#1AF224"}
-				else return lineColor(d[d.length-1]);
+				return lineColor(d[d.length-1]);
 			})
 			.style("opacity", function(d,i) {
-				if (i==0) {return 1;}
-				else if (i== series.sims.length-1) {return 1}
-				else {return parseFloat($("#inputOpacity").val())}
+				return parseFloat($("#inputOpacity").val())
 			})
 
 		//Later might need an exit here
@@ -156,8 +152,6 @@ function LineChart(svgObj){
 		var seriesBound = svgObj.svg.selectAll(".fanlines").data(series.fans);
 
 		var valueline2 = d3.svg.line()
-			.interpolate("bundle")
-			.tension(0.5)
 			.defined(function(d) { return d != null; })
 		    .x(function(d,i) { return x(i); })
 		    .y(function(d) { return y(d); });
@@ -168,7 +162,7 @@ function LineChart(svgObj){
 			.attr("d", function(d) {
 				return valueline2(d)
 			})
-			.attr("class", "lines")
+			.attr("class", "fanlines")
 			.style("stroke-width", 1)
 			
 			
@@ -176,12 +170,12 @@ function LineChart(svgObj){
 			.attr("d", function(d) {
 				return valueline2(d)
 			})
-			.attr("class", "lines")
+			.attr("class", "fanlines")
 			.style("stroke", function(d,i) {
 				return lineColor(d[d.length-1]);
 			})
 			.style("opacity", function(d,i) {
-				if ((i+1)%5==0) {return 1}
+				if ((i+1)%5==0&&i!=49) {return 1}
 				else {return 0.1}
 			})
 			.style("stroke-width", function(d,i) {
@@ -196,12 +190,51 @@ function LineChart(svgObj){
 			
 	}
 
+	function reDrawStartAndForecast() {
+
+
+		var seriesBound = svgObj.svg.selectAll(".startForecast").data(series.startforecast);
+
+		//Plot each series
+
+		seriesBound.enter().append("path")      // Add the valueline path.
+			.attr("d", function(d) {
+				return valueline(d)
+			})
+			.attr("class", "startForecast")
+			.style("stroke-width", function(d,i) {
+				if (i==0) {return 2;}
+				else if (i== 1) {return 1}
+			})
+			
+			
+		seriesBound     
+			.attr("d", function(d) {
+				return valueline(d)
+			})
+			.attr("class", "lines")
+			.style("stroke", function(d,i) {
+				if (i ==0) return undefined;
+				else if (i== 1) {return "#1AF224"}
+			})
+			.style("opacity", function(d,i) {
+				if (i==0) {return 1;}
+				else if (i== 1) {return 1}
+			})
+
+		//Later might need an exit here
+		seriesBound     
+			.exit()
+			.remove();
+
+	}
 
 
 	var series = {sims: [],
-					fans: []};
+				  fans: [],
+				  startforecast:[]};
 
-	this.addSeries = function(ar) {
+	this.addSim = function(ar) {
 		series.sims.push(ar);
 		
 	}
@@ -209,6 +242,14 @@ function LineChart(svgObj){
 	this.addFan = function(ar) {
 		series.fans.push(ar);
 		
+	}
+
+	this.addStart = function(ar){
+		series.startforecast[0] = ar;
+	}
+
+	this.addForecast = function(ar){
+		series.startforecast[1] = ar;
 	}
 
 	this.removeAllSims = function() {
@@ -250,27 +291,34 @@ var vis = (function() {
 	model.getModelParams();
 	model.generateNewStart();
 	model.generateSims();
-	model.generateFan();
+	
 
 	lineC.reDraw();
 
+	setTimeout(model.generateFan,200);
+
 	$("#redraw").on("click", function() {
+		$("#toggle").prop('checked', false)
 		model.getModelParams();
 		lineC.removeAllData();
 		model.regenerateStart();
 		model.generateSims();
-		model.generateFan();
+		
 		lineC.reDraw();
+
+		setTimeout(model.generateFan,200);
 	})
 
 	$("#newErrors").on("click", function() {
+		$("#toggle").prop('checked', false)
 		model.getModelParams();
 		lineC.removeAllData();
 		model.generateNewStart();
 		model.generateSims();
-		model.generateFan();
-		lineC.reDraw();
 		
+		lineC.reDraw();
+
+		setTimeout(model.generateFan,200);		
 	})
 
 	$("#toggle").on("click", function() {
@@ -346,6 +394,7 @@ function TimeSeriesModel(chart) {
 
 	var startData;
 	var fanSeries;
+	
 	//forecast is boolean - if true then continuation is generated with no errors
 	function generateContinuation(forecast) {
 
@@ -432,32 +481,32 @@ function TimeSeriesModel(chart) {
 	this.generateSims = function() {
 		for (var i = 0; i < numSims; i++) {
 			var newdata = generateContinuation();
-			chart.addSeries(newdata.series,0);
+			chart.addSim(newdata.series,0);
 		};
 
 		var newdata = generateContinuation(1);
-			chart.addSeries(newdata.series,0);
+			chart.addForecast(newdata.series,0);
 
 	}
 
 	this.generateNewStart = function() {
 		startData = undefined;
 		startData = generateStart(numPoints);
-		chart.addSeries(startData.series);
+		chart.addStart(startData.series);
 	}
 
 	this.regenerateStart = function() {
 		startData = generateStart(numPoints);
-		chart.addSeries(startData.series);
+		chart.addStart(startData.series);
 	}
 
 	this.generateFan = function() {
 
 		var sims = chart.getSims().slice(0);
-		//Get rid of start and forecast
-		sims.pop();
-		sims.shift();
 
+		for (var i = 0; i < 1000; i++) {
+			sims.push(generateContinuation().series)
+		};
 		
 		var transposed = d3.transpose(sims)
 		scales = [];

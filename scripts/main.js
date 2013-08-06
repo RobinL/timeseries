@@ -32,7 +32,11 @@ function LineChart(svgObj){
 	    .attr("class", "y axis")
 	    .call(yAxis);
 
+	var lineColor;
+
+	//ReDraw the axes
 	this.reDraw = function() {
+		
 
 		//Get domain
 
@@ -41,12 +45,12 @@ function LineChart(svgObj){
 
 
 		// Append all series
-		allSeries = [].concat.apply([],series)
+		allSeries = [].concat.apply([],series.sims)
 
 
-		getXLength = _.reduce(series, function(a,b) {
+		getXLength = _.reduce(series.sims, function(a,b) {
 			return Math.max(a,b.length)
-		},series[0].length);
+		},series.sims[0].length);
 
 
 		x = d3.scale.linear()
@@ -72,24 +76,38 @@ function LineChart(svgObj){
 		    .call(yAxis);
 
 		//Colour scale for series
-		minEnd = _.reduce(series,function(a,b,i) {
+		minEnd = _.reduce(series.sims,function(a,b,i) {
 			if (i==0) return a;
 			else return Math.min(a,b[b.length-1]);
-		}, series[1][series[1].length-1]);
+		}, series.sims[1][series.sims[1].length-1]);
 
-		maxEnd = _.reduce(series,function(a,b,i) {
+		maxEnd = _.reduce(series.sims,function(a,b,i) {
 			if (i==0) return a;
 			else return Math.max(a,b[b.length-1]);
-		}, series[1][series[1].length-1]);
+		}, series.sims[1][series.sims[1].length-1]);
 
 		//allSeries[allSeries.length-1] is the mid point of the uncertainty because its the forecast
-		var lineColor=d3.scale.linear()
+		lineColor=d3.scale.linear()
 			.domain([minEnd,allSeries[allSeries.length-1],maxEnd])
 			.range(["red","steelblue", "red"]);
-		
+
+		debugger;
+
+		if ($("#toggle").is(':checked')) {
+			reDrawSims();
+		} else {
+			reDrawFan();
+		}
+
+	}
+
+	function reDrawSims() {
+
+		//Delete any fans that might exist
+		var fans = svgObj.svg.selectAll(".fanlines").remove();
 		//Update and enter the new series
 
-		var seriesBound = svgObj.svg.selectAll(".lines").data(series);
+		var seriesBound = svgObj.svg.selectAll(".lines").data(series.sims);
 
 		//Plot each series
 
@@ -100,7 +118,7 @@ function LineChart(svgObj){
 			.attr("class", "lines")
 			.style("stroke-width", function(d,i) {
 				if (i==0) {return 2;}
-				else if (i== series.length-1) {return 1}
+				else if (i== series.sims.length-1) {return 1}
 				else {return 2;}
 			})
 			
@@ -112,12 +130,12 @@ function LineChart(svgObj){
 			.attr("class", "lines")
 			.style("stroke", function(d,i) {
 				if (i ==0) return undefined;
-				else if (i== series.length-1) {return "#1AF224"}
+				else if (i== series.sims.length-1) {return "#1AF224"}
 				else return lineColor(d[d.length-1]);
 			})
 			.style("opacity", function(d,i) {
 				if (i==0) {return 1;}
-				else if (i== series.length-1) {return 1}
+				else if (i== series.sims.length-1) {return 1}
 				else {return parseFloat($("#inputOpacity").val())}
 			})
 
@@ -128,25 +146,84 @@ function LineChart(svgObj){
 			
 	}
 
-	var series = [];
+	function reDrawFan() {
 
-	this.addSeries = function(ar,rd) {
-		series.push(ar);
-		if (rd) this.reDraw();
+		
+		//Delete any fans that might exist
+		var fans = svgObj.svg.selectAll(".lines").remove();
+		//Update and enter the new series
+
+		var seriesBound = svgObj.svg.selectAll(".fanlines").data(series.fans);
+
+		var valueline2 = d3.svg.line()
+			.interpolate("bundle")
+			.tension(0.5)
+			.defined(function(d) { return d != null; })
+		    .x(function(d,i) { return x(i); })
+		    .y(function(d) { return y(d); });
+
+		//Plot each series
+
+		seriesBound.enter().append("path")      // Add the valueline path.
+			.attr("d", function(d) {
+				return valueline2(d)
+			})
+			.attr("class", "lines")
+			.style("stroke-width", 1)
+			
+			
+		seriesBound     
+			.attr("d", function(d) {
+				return valueline2(d)
+			})
+			.attr("class", "lines")
+			.style("stroke", function(d,i) {
+				return lineColor(d[d.length-1]);
+			})
+			.style("opacity", function(d,i) {
+				if ((i+1)%5==0) {return 1}
+				else {return 0.1}
+			})
+			.style("stroke-width", function(d,i) {
+				if ((i+1)%5==0) {return 1}
+				else {return 1}
+			})
+
+		//Later might need an exit here
+		seriesBound     
+			.exit()
+			.remove();
+			
+	}
+
+
+
+	var series = {sims: [],
+					fans: []};
+
+	this.addSeries = function(ar) {
+		series.sims.push(ar);
+		
+	}
+
+	this.addFan = function(ar) {
+		series.fans.push(ar);
+		
 	}
 
 	this.removeAllSims = function() {
-		while (series.length>1) {
+		while (series.sims.length>1) {
 			series.pop()
 		}	
 	}
 
 	this.removeAllData = function() {
-		series = [];
+		series.sims = [];
+		series.fans = [];
 	}
 
-	this.getSeries = function(){
-		return series;
+	this.getSims = function(){
+		return series.sims;
 	}
 
 }
@@ -173,6 +250,7 @@ var vis = (function() {
 	model.getModelParams();
 	model.generateNewStart();
 	model.generateSims();
+	model.generateFan();
 
 	lineC.reDraw();
 
@@ -181,6 +259,7 @@ var vis = (function() {
 		lineC.removeAllData();
 		model.regenerateStart();
 		model.generateSims();
+		model.generateFan();
 		lineC.reDraw();
 	})
 
@@ -189,10 +268,14 @@ var vis = (function() {
 		lineC.removeAllData();
 		model.generateNewStart();
 		model.generateSims();
+		model.generateFan();
 		lineC.reDraw();
 		
 	})
 
+	$("#toggle").on("click", function() {
+		lineC.reDraw();
+	})
 	
 	
 
@@ -370,13 +453,13 @@ function TimeSeriesModel(chart) {
 
 	this.generateFan = function() {
 
-		var series = chart.getSeries();
+		var sims = chart.getSims().slice(0);
 		//Get rid of start and forecast
-		series.pop();
-		series.shift();
+		sims.pop();
+		sims.shift();
 
 		
-		var transposed = d3.transpose(series)
+		var transposed = d3.transpose(sims)
 		scales = [];
 
 		_.each(transposed, function(x,i,ar) {
@@ -397,7 +480,7 @@ function TimeSeriesModel(chart) {
 
 		_.each(scales, function(x,i,ar) {
 
-			for (var j = 1; j < 100; j++) {
+			for (var j = 1; j <= 99; j++) {
 				if (fanSeries[j]) 	{
 					fanSeries[j].push(x(j));
 				}
@@ -408,17 +491,18 @@ function TimeSeriesModel(chart) {
 			};
 		})
 
-		// chart.removeAllData();
+		_.each(fanSeries, function(x,i) {
+			chart.addFan(x);
+		})
 
-		// _.each(fanSeries, function(x,i) {
-		// 	chart.addSeries(x);
-		// })
+
 
 		
-		// chart.reDraw();
-	
+		
 
 	}
 
 
 }
+
+
